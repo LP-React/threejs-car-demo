@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useMemo } from 'react'
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Environment, Lightformer, useGLTF } from '@react-three/drei'
 import { Bloom, EffectComposer, SMAA } from '@react-three/postprocessing'
@@ -9,11 +9,10 @@ import type { SceneState } from '../experience/camera'
 
 export type ScrollState = SceneState
 type IntroState = { lights: number }
-type SceneProps = { scroll: MutableRefObject<ScrollState>; intro: MutableRefObject<IntroState>; reducedMotion: boolean; onReady: () => void }
-const modelUrl = `${import.meta.env.BASE_URL}models/mercedes-amg-sl63.glb`
+type SceneProps = { scroll: MutableRefObject<ScrollState>; intro: MutableRefObject<IntroState>; reducedMotion: boolean; onReady: () => void; requestRender: MutableRefObject<() => void> }
 
-function Vehicle({ intro }: Pick<SceneProps, 'intro'>) {
-  const { scene } = useGLTF(modelUrl)
+function Vehicle({ intro, mobile }: Pick<SceneProps, 'intro'> & { mobile: boolean }) {
+  const { scene } = useGLTF(`${import.meta.env.BASE_URL}models/mercedes-amg-sl63${mobile ? '-mobile' : ''}.glb`)
   const vehicle = useMemo(() => {
     const clone = scene.clone(true)
     const materials = new Map<MeshStandardMaterial, MeshStandardMaterial>()
@@ -150,26 +149,52 @@ function GroundShadow() {
 }
 
 export function CarScene(props: SceneProps) {
+  // Choose the asset once; resizing must not download a second model.
+  const [mobile] = useState(() => window.matchMedia('(max-width: 768px), (pointer: coarse)').matches)
   return (
     <Canvas
-      dpr={[1, 2]}
+      frameloop="demand"
+      dpr={mobile ? 1.25 : [1, 2]}
+      onCreated={({ invalidate }) => {
+        // Expose the Canvas invalidator to the external GSAP animation loop.
+        // eslint-disable-next-line react-hooks/immutability
+        props.requestRender.current = invalidate
+      }}
       camera={{ position: [0, 1.25, 6.2], fov: 36, near: 0.1, far: 50 }}
       gl={{ antialias: false, alpha: true, powerPreference: 'high-performance', toneMapping: ACESFilmicToneMapping }}
       fallback={<div className="scene-fallback">This experience needs WebGL. Please try a browser with hardware acceleration enabled.</div>}
       aria-label="Mercedes-AMG SL 63, a 3D studio presentation controlled by scrolling"
     >
       <Suspense fallback={null}>
-        <Vehicle intro={props.intro} />
+        <Vehicle intro={props.intro} mobile={mobile} />
+        {mobile && <MobileResolution />}
         <Studio />
         <CameraDirector {...props} />
         <GroundShadow />
         <SceneReady onReady={props.onReady} />
         {/* Apply antialiasing to the composer's render targets, which feed the final image. */}
-        <EffectComposer multisampling={4}>
-          <Bloom luminanceThreshold={1.1} intensity={0.35} mipmapBlur />
+        <EffectComposer multisampling={mobile ? 0 : 4}>
+          <Bloom luminanceThreshold={1.1} intensity={0.35} mipmapBlur resolutionY={mobile ? 256 : 512} />
           <SMAA />
         </EffectComposer>
       </Suspense>
     </Canvas>
   )
+}
+
+function MobileResolution() {
+  const setDpr = useThree((state) => state.setDpr)
+  const samples = useRef({ count: 0, elapsed: 0, settled: false })
+  useFrame((_, delta) => {
+    const sample = samples.current
+    // Ignore idle gaps and loading stalls; measure only consecutive animation frames.
+    if (sample.settled || delta > 0.15) return
+    sample.count++
+    sample.elapsed += delta
+    if (sample.count < 90) return
+    if (sample.count / sample.elapsed < 45) { setDpr(1); sample.settled = true }
+    sample.count = 0
+    sample.elapsed = 0
+  })
+  return null
 }

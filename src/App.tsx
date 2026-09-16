@@ -36,6 +36,7 @@ function App() {
   const entrance = useRef<gsap.core.Timeline | null>(null)
   const navigation = useRef<gsap.core.Tween | null>(null)
   const tour = useRef<gsap.core.Tween | null>(null)
+  const requestRender = useRef<() => void>(() => {})
   const [sceneReady, setSceneReady] = useState(false)
   const handleSceneReady = useCallback(() => setSceneReady(true), [])
   const [chapter, setChapter] = useState(0)
@@ -56,7 +57,7 @@ function App() {
       gsap.set(root.current, { '--intro-scene': 1, '--intro-background': 1, '--intro-ui': 1 })
       return
     }
-    entrance.current = gsap.timeline({ delay: 1 })
+    entrance.current = gsap.timeline({ delay: 1, onUpdate: () => requestRender.current() })
       .to(intro.current, { lights: 1, duration: 0.7, ease: 'power2.out' }, 0)
       .to(root.current, { '--intro-scene': 1, duration: 0.25 }, 0)
       .to(root.current, { '--intro-background': 1, duration: 1, ease: 'power2.out' }, 0.35)
@@ -69,6 +70,7 @@ function App() {
       ease: 'none',
       scrollTrigger: { trigger: root.current, start: 'top top', end: 'bottom bottom', scrub: reducedMotion ? true : 0.7, invalidateOnRefresh: true },
       onUpdate: () => {
+        requestRender.current()
         const progress = scroll.current.progress
         // Early scrolling finishes the entrance instead of hiding the ongoing tour.
         if (progress > 0.01) entrance.current?.progress(1)
@@ -98,9 +100,11 @@ function App() {
       mix: 1,
       duration: reducedMotion ? 0 : 1.25,
       ease: 'power2.inOut',
+      onUpdate: () => requestRender.current(),
       onComplete: () => {
         scroll.current.jump = null
         tour.current?.scrollTrigger?.getTween()?.progress(1)
+        requestRender.current()
       },
     })
   })()
@@ -115,7 +119,7 @@ function App() {
           <span className="header-model">MERCEDES-BENZ <span>SL 63</span></span>
         </header>
         <div className="backdrop-type" key={current.word} aria-hidden="true">{current.word}</div>
-        <div className="canvas-layer"><SceneBoundary onFailure={handleSceneFailure}><CarScene scroll={scroll} intro={intro} reducedMotion={reducedMotion} onReady={handleSceneReady} /></SceneBoundary></div>
+        <div className="canvas-layer"><SceneBoundary onFailure={handleSceneFailure}><CarScene scroll={scroll} intro={intro} reducedMotion={reducedMotion} onReady={handleSceneReady} requestRender={requestRender} /></SceneBoundary></div>
         <div className="studio-shade" aria-hidden="true" />
         <div className="model-label"><span className="status-dot" /> 2022 / MERCEDES-AMG SL 63</div>
         <div className="chapter-caption" key={chapter}>
