@@ -13,6 +13,16 @@ Build a visual, interactive Three.js application showcasing high-end cars. The 3
 - Use a discreet interface and smooth transitions; effects should help users appreciate the car.
 - Manage model loading and rendering performance to keep interactions smooth.
 
+## Visual references and model selection
+
+- Reference sequence: dark frontal view with visible headlights, progressive studio-light reveal, side view with large condensed typography behind the car, then a rear three-quarter view with short feature text.
+- Use the references as visual direction, not an exact layout or a source of vehicle specifications. The opening reveal and typography behind the car are the main inspirations.
+- Interaction is scroll-only for now. Scrolling up must reverse the sequence; mouse-driven interactions are a possible future addition.
+- Evaluate models before implementing the scene. Prefer GLB/glTF with PBR textures and separately addressable materials for paint, glass, headlights, and taillights. Separate meshes are needed for independent part movement; a static model is sufficient for camera shots and whole-car transforms.
+- Build and animate the lighting in our scene. Do not assume a marketplace preview's lighting, environment, or postprocessing is included in the downloaded model. Avoid baked highlights or unlit body materials that prevent a convincing lighting reveal.
+- Inspect model hierarchy, material assignments, texture completeness, geometry, download size, and license before selecting an asset. Test the imported model under dark and studio lighting before finalizing it.
+- Asset sources to evaluate: [Sketchfab downloadable models](https://sketchfab.com/features/gltf) and [Fab](https://www.fab.com/). No specific vehicle asset has been selected yet.
+
 ## Scope
 
 There are no SEO, search ranking, or marketing metadata objectives. Prioritize 3D presentation and interaction.
