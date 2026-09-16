@@ -3,6 +3,7 @@
 ## Supplied asset
 
 - User description: 2022 Mercedes-Benz AMG SL 63, downloaded for free.
+- User-supplied attribution: “2022 Mercedes-Benz AMG SL63” by Ghøst, available on Sketchfab. The website footer links the supplied [author profile on 3D Warehouse](https://3dwarehouse.sketchup.com/user/u9da13335-caf8-472a-af19-c20647fd81cf/Gh%C3%B8st). The exact download page and license remain unverified.
 - Archive: `src/2022-mercedes-benz-amg-sl63.zip`.
 - Model entry: `source/2022+Mercedes-AMG+SL63.glb`.
 - Inspection method: read the ZIP entries and GLB JSON chunk without extracting or modifying the original archive. This is a structural inspection, not a visual or full glTF validation.

@@ -50,7 +50,7 @@ The user will provide vehicle models and specifications. Specific vehicles, scen
 - Runtime model: `public/models/mercedes-amg-sl63.glb`, extracted from the original user-provided ZIP. The ZIP stays locally at `src/2022-mercedes-benz-amg-sl63.zip` and is ignored to avoid storing the model twice.
 - Desktop and 390 × 844 mobile layouts were visually checked, including dark headlights, the reveal, side/rear shots, and returning to the opening. No browser console errors were observed. Hardware performance profiling is still pending.
 - Reduced-motion preferences remove CSS transitions and replace camera interpolation with discrete shots. The scene provides WebGL and loading error fallbacks.
-- Visible copy is editorial; vehicle specifications await user-provided information. The source URL, author, and asset license are still pending. See `docs/model-audit.md`.
+- The footer credits the user-supplied author Ghøst, links their [3D Warehouse profile](https://3dwarehouse.sketchup.com/user/u9da13335-caf8-472a-af19-c20647fd81cf/Gh%C3%B8st), and identifies Sketchfab as the platform per the user's attribution text. The exact model-page URL and asset license are still pending. See `docs/model-audit.md`.
 
 ## Version control
 
