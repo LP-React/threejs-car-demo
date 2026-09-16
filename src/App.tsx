@@ -136,7 +136,10 @@ function App() {
           <span className="footer-edition">THE SL COLLECTION <span> / </span> VOL. 01</span>
           <div className="scroll-prompt"><span className="scroll-line" /><span>{chapter === chapters.length - 1 ? 'SCROLL BACK TO REVISIT' : current.detail}</span><span>↓</span></div>
           <span className="chapter-counter">{current.number}<span> / {String(chapters.length).padStart(2, '0')}</span></span>
-          <small className="model-credit">3D model “2022 Mercedes-Benz AMG SL63” by <a href="https://3dwarehouse.sketchup.com/user/u9da13335-caf8-472a-af19-c20647fd81cf/Gh%C3%B8st" target="_blank" rel="noopener noreferrer">Ghøst</a>, available on Sketchfab.</small>
+          <div className="footer-credits">
+            <small className="model-credit">3D model “2022 Mercedes-Benz AMG SL63” by <a href="https://3dwarehouse.sketchup.com/user/u9da13335-caf8-472a-af19-c20647fd81cf/Gh%C3%B8st" target="_blank" rel="noopener noreferrer">Ghøst</a>, available on Sketchfab.</small>
+            <small className="developer-credit">Developed by <a href="https://www.layssonpolo.com/en" target="_blank" rel="noopener noreferrer">LP-REACT</a></small>
+          </div>
         </footer>
         <div className="progress-track"><span /></div>
         {!sceneFailed && !sceneReady && <LoadingScreen />}
