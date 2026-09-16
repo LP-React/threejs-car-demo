@@ -17,7 +17,7 @@ Build a visual, interactive Three.js application showcasing high-end cars. The 3
 
 - Reference sequence: dark frontal view with visible headlights, progressive studio-light reveal, side view with large condensed typography behind the car, then a rear three-quarter view with short feature text.
 - Use the references as visual direction, not an exact layout or a source of vehicle specifications. The opening reveal and typography behind the car are the main inspirations.
-- Interaction is scroll-only for now. Scrolling up must reverse the sequence; mouse-driven interactions are a possible future addition.
+- Scroll controls the scene, with clickable chapter links as an alternative way to navigate the same sequence. Scrolling up reverses it. There are no mouse-driven camera controls.
 - Evaluate models before implementing the scene. Prefer GLB/glTF with PBR textures and separately addressable materials for paint, glass, headlights, and taillights. Separate meshes are needed for independent part movement; a static model is sufficient for camera shots and whole-car transforms.
 - Build and animate the lighting in our scene. Do not assume a marketplace preview's lighting, environment, or postprocessing is included in the downloaded model. Avoid baked highlights or unlit body materials that prevent a convincing lighting reveal.
 - Inspect model hierarchy, material assignments, texture completeness, geometry, download size, and license before selecting an asset. Test the imported model under dark and studio lighting before finalizing it.
@@ -32,9 +32,11 @@ The user will provide vehicle models and specifications. Specific vehicles, scen
 ## Current state
 
 - Base: Vite, React, and TypeScript; package manager: pnpm.
-- The first Mercedes-AMG SL63 experience uses a sticky studio viewport and four scroll-driven chapters: dark opening, lighting reveal, side silhouette, and a rear perspective that returns to a front three-quarter shot for the closing pose.
+- The Mercedes-AMG SL63 experience uses a sticky studio viewport and seven scroll-driven chapters: introduction, reveal, silhouette, wheels, interior, rear, and finale.
+- `src/experience/sequence.ts` centralizes chapter destinations, activation thresholds, camera shots, and tour height. Camera positions use an orbit with unwrapped increasing angles, interpolated radius, elevation, and targets. The rear-to-front closing arc continues in the same direction instead of reversing or taking a straight shortcut through the orbit.
+- The chapter navigation includes numbers and labels on desktop and compact numbered links on mobile, with accessible labels and an active-state indicator. GSAP ScrollToPlugin animates the page to each chapter's camera shot; manual scrolling can interrupt navigation. The native scrollbar is hidden while scrolling remains enabled; the existing bottom progress line remains visible.
 - The entrance starts completely black, including loading. Once the scene is ready, it holds for one second, fades the headlights on, reveals the existing background, and then fades in the interface. Early scrolling completes the entrance; restored scroll positions and reduced-motion preferences skip it. Loading or rendering failures still show recovery messages.
-- Background typography sits higher (12% from the top on desktop, 22% on mobile) while the model's presentation scale remains unchanged. The final camera pose is held over the last 3% of scroll progress.
+- Background typography is smaller (12vw, capped at 210px on desktop; 17vw on mobile) and positioned above the model. The model's presentation scale is unchanged. Detail shots use closer camera targets; a subtle shading layer protects caption legibility. The final camera pose is held over the last 3% of scroll progress.
 - Installed 3D dependencies: `three`, `@react-three/fiber`, and `@react-three/drei` for React integration, model loading, and environments.
 - Visual effects: `postprocessing` and `@react-three/postprocessing`.
 - Antialiasing is applied in the postprocessing composer: 4-sample MSAA plus SMAA for fine edges. Native canvas antialiasing is disabled to avoid duplicating work; device pixel ratio is capped at 2 for sharper high-density displays. These settings add GPU cost and should be reviewed during hardware performance profiling.
