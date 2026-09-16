@@ -4,9 +4,10 @@ import { Environment, Lightformer, useGLTF } from '@react-three/drei'
 import { Bloom, EffectComposer, SMAA } from '@react-three/postprocessing'
 import { ACESFilmicToneMapping, Box3, Color, DataTexture, MathUtils, Mesh, MeshPhysicalMaterial, MeshStandardMaterial, Vector3 } from 'three'
 import type { MutableRefObject } from 'react'
-import { shots } from '../experience/sequence'
+import { blendPose, poseAt } from '../experience/camera'
+import type { SceneState } from '../experience/camera'
 
-export type ScrollState = { progress: number }
+export type ScrollState = SceneState
 type IntroState = { lights: number }
 type SceneProps = { scroll: MutableRefObject<ScrollState>; intro: MutableRefObject<IntroState>; reducedMotion: boolean; onReady: () => void }
 const modelUrl = `${import.meta.env.BASE_URL}models/mercedes-amg-sl63.glb`
@@ -88,26 +89,22 @@ function CameraDirector({ scroll, intro, reducedMotion }: SceneProps) {
   const position = useMemo(() => new Vector3(), [])
   const target = useMemo(() => new Vector3(), [])
   useFrame((state) => {
-    const progress = scroll.current.progress
-    let index = shots.findIndex((shot) => shot.at >= progress)
-    index = Math.max(1, index === -1 ? shots.length - 1 : index)
-    const from = shots[index - 1]
-    const to = shots[index]
-    const raw = MathUtils.clamp((progress - from.at) / (to.at - from.at), 0, 1)
-    const blend = reducedMotion ? (raw < 0.5 ? 0 : 1) : MathUtils.smoothstep(raw, 0, 1)
-    const angle = MathUtils.lerp(from.angle, to.angle, blend)
-    const radius = MathUtils.lerp(from.radius, to.radius, blend)
-    position.set(Math.sin(angle) * radius, MathUtils.lerp(from.y, to.y, blend), Math.cos(angle) * radius)
-    target.set(MathUtils.lerp(from.target[0], to.target[0], blend), MathUtils.lerp(from.target[1], to.target[1], blend), MathUtils.lerp(from.target[2], to.target[2], blend))
+    const jump = scroll.current.jump
+    const pose = jump ? blendPose(jump.from, jump.to, jump.mix) : poseAt(scroll.current.progress, reducedMotion)
+    // Shared imperative motion state records the rendered pose for interrupted chapter transitions.
+    // eslint-disable-next-line react-hooks/immutability
+    scroll.current.pose = pose
+    position.set(Math.sin(pose.angle) * pose.radius, pose.y, Math.cos(pose.angle) * pose.radius)
+    target.set(pose.targetX, pose.targetY, pose.targetZ)
     // Back the camera away on portrait screens to keep the full car in frame.
     const aspect = size.width / size.height
     const lateral = Math.abs(position.x - target.x) / position.distanceTo(target)
-    const wide = MathUtils.lerp(from.wide, to.wide, blend)
+    const wide = pose.wide
     const fit = aspect < 1 ? MathUtils.lerp(1.12, Math.max(1.3, 0.8 / aspect) + lateral * 0.65, wide) : 1
     position.sub(target).multiplyScalar(fit).add(target)
     camera.position.copy(position)
     camera.lookAt(target)
-    state.scene.environmentIntensity = MathUtils.lerp(from.light, to.light, blend) * intro.current.lights
+    state.scene.environmentIntensity = pose.light * intro.current.lights
   })
   return null
 }

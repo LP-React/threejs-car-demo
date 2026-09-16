@@ -4,12 +4,13 @@ import { useProgress } from '@react-three/drei'
 import { useGSAP } from '@gsap/react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import { ScrollToPlugin } from 'gsap/ScrollToPlugin'
+import { directTarget, poseAt } from './experience/camera'
+import type { SceneState } from './experience/camera'
 import { chapterAt, chapters, tourHeight } from './experience/sequence'
 import { CarScene } from './components/CarScene'
 import './App.css'
 
-gsap.registerPlugin(ScrollTrigger, ScrollToPlugin, useGSAP)
+gsap.registerPlugin(ScrollTrigger, useGSAP)
 
 class SceneBoundary extends Component<{ children: ReactNode; onFailure: () => void }, { failed: boolean }> {
   state = { failed: false }
@@ -30,10 +31,11 @@ function LoadingScreen() {
 
 function App() {
   const root = useRef<HTMLElement>(null)
-  const scroll = useRef({ progress: 0 })
+  const scroll = useRef<SceneState>({ progress: 0, pose: poseAt(0), jump: null })
   const intro = useRef({ lights: 0 })
   const entrance = useRef<gsap.core.Timeline | null>(null)
   const navigation = useRef<gsap.core.Tween | null>(null)
+  const tour = useRef<gsap.core.Tween | null>(null)
   const [sceneReady, setSceneReady] = useState(false)
   const handleSceneReady = useCallback(() => setSceneReady(true), [])
   const [chapter, setChapter] = useState(0)
@@ -62,7 +64,7 @@ function App() {
     return () => { entrance.current = null }
   }, { scope: root, dependencies: [sceneReady, sceneFailed, reducedMotion], revertOnUpdate: true })
   const { contextSafe } = useGSAP(() => {
-    gsap.to(scroll.current, {
+    tour.current = gsap.to(scroll.current, {
       progress: 1,
       ease: 'none',
       scrollTrigger: { trigger: root.current, start: 'top top', end: 'bottom bottom', scrub: reducedMotion ? true : 0.7, invalidateOnRefresh: true },
@@ -70,6 +72,7 @@ function App() {
         const progress = scroll.current.progress
         // Early scrolling finishes the entrance instead of hiding the ongoing tour.
         if (progress > 0.01) entrance.current?.progress(1)
+        if (scroll.current.jump) return
         root.current?.style.setProperty('--progress', String(progress))
         const next = chapterAt(progress)
         if (next !== chapterRef.current) { chapterRef.current = next; setChapter(next) }
@@ -80,13 +83,25 @@ function App() {
     if (!root.current) return
     entrance.current?.progress(1)
     navigation.current?.kill()
+    const destination = chapters[index].at
+    const jump = { from: { ...scroll.current.pose }, to: directTarget(scroll.current.pose, poseAt(destination)), mix: 0 }
+    scroll.current.jump = jump
+    chapterRef.current = index
+    setChapter(index)
+    root.current.style.setProperty('--progress', String(destination))
     const start = root.current.getBoundingClientRect().top + window.scrollY
-    const target = start + (root.current.offsetHeight - window.innerHeight) * chapters[index].at
-    const distance = Math.abs(target - window.scrollY) / window.innerHeight
-    navigation.current = gsap.to(window, {
-      scrollTo: { y: target, autoKill: true },
-      duration: reducedMotion ? 0 : Math.min(3.2, Math.max(0.8, distance * 0.6)),
+    const target = start + (root.current.offsetHeight - window.innerHeight) * destination
+    // Reposition the document silently; animate only the selected camera endpoints.
+    window.scrollTo({ top: target, behavior: 'instant' })
+    ScrollTrigger.update()
+    navigation.current = gsap.to(jump, {
+      mix: 1,
+      duration: reducedMotion ? 0 : 1.25,
       ease: 'power2.inOut',
+      onComplete: () => {
+        scroll.current.jump = null
+        tour.current?.scrollTrigger?.getTween()?.progress(1)
+      },
     })
   })()
   const current = chapters[chapter]
