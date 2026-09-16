@@ -1,7 +1,7 @@
 import { Suspense, useEffect, useMemo } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Environment, Lightformer, useGLTF } from '@react-three/drei'
-import { Bloom, EffectComposer } from '@react-three/postprocessing'
+import { Bloom, EffectComposer, SMAA } from '@react-three/postprocessing'
 import { ACESFilmicToneMapping, Box3, Color, DataTexture, MathUtils, Mesh, MeshPhysicalMaterial, MeshStandardMaterial, Vector3 } from 'three'
 import type { MutableRefObject } from 'react'
 
@@ -141,9 +141,9 @@ function GroundShadow() {
 export function CarScene(props: SceneProps) {
   return (
     <Canvas
-      dpr={[1, 1.5]}
+      dpr={[1, 2]}
       camera={{ position: [0, 1.25, 6.2], fov: 36, near: 0.1, far: 50 }}
-      gl={{ antialias: true, alpha: true, powerPreference: 'high-performance', toneMapping: ACESFilmicToneMapping }}
+      gl={{ antialias: false, alpha: true, powerPreference: 'high-performance', toneMapping: ACESFilmicToneMapping }}
       fallback={<div className="scene-fallback">This experience needs WebGL. Please try a browser with hardware acceleration enabled.</div>}
       aria-label="Mercedes-AMG SL 63, a 3D studio presentation controlled by scrolling"
     >
@@ -152,8 +152,10 @@ export function CarScene(props: SceneProps) {
         <Studio />
         <CameraDirector {...props} />
         <GroundShadow />
-        <EffectComposer multisampling={0}>
+        {/* Apply antialiasing to the composer's render targets, which feed the final image. */}
+        <EffectComposer multisampling={4}>
           <Bloom luminanceThreshold={1.1} intensity={0.35} mipmapBlur />
+          <SMAA />
         </EffectComposer>
       </Suspense>
     </Canvas>

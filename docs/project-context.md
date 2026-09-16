@@ -35,6 +35,7 @@ The user will provide vehicle models and specifications. Specific vehicles, scen
 - The first Mercedes-AMG SL63 experience replaces the Vite starter screen: a sticky studio viewport and four scroll-driven chapters with a dark opening, lighting reveal, side view, and rear perspective.
 - Installed 3D dependencies: `three`, `@react-three/fiber`, and `@react-three/drei` for React integration, model loading, and environments.
 - Visual effects: `postprocessing` and `@react-three/postprocessing`.
+- Antialiasing is applied in the postprocessing composer: 4-sample MSAA plus SMAA for fine edges. Native canvas antialiasing is disabled to avoid duplicating work; device pixel ratio is capped at 2 for sharper high-density displays. These settings add GPU cost and should be reviewed during hardware performance profiling.
 - Animation: `gsap` with its included ScrollTrigger plugin and `@gsap/react` for React integration and cleanup. Use a scroll-linked sequence to control the camera and model.
 - Three.js types: `@types/three`. React stays on the 19.2 release line compatible with Fiber 9.
 - `src/components/CarScene.tsx` loads the model, normalizes its bounds, adjusts materials, generates a local studio environment, and interpolates camera shots and environment intensity from scroll progress.
