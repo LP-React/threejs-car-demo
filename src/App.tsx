@@ -1,121 +1,110 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
+import { Component, useCallback, useEffect, useRef, useState } from 'react'
+import type { ErrorInfo, ReactNode } from 'react'
+import { useProgress } from '@react-three/drei'
+import { useGSAP } from '@gsap/react'
+import gsap from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { CarScene } from './components/CarScene'
 import './App.css'
 
+gsap.registerPlugin(ScrollTrigger, useGSAP)
+
+const chapters = [
+  { number: '01', label: 'The introduction', title: 'Before the light.', copy: 'A presence you feel. Before you see it.', word: '', detail: 'SCROLL TO REVEAL' },
+  { number: '02', label: 'The reveal', title: 'Made to be seen.', copy: 'Light traces every curve. A new perspective on the Mercedes-AMG SL 63.', word: 'SL 63', detail: 'LIGHT / FORM / PRESENCE' },
+  { number: '03', label: 'The silhouette', title: 'Every line. Intentional.', copy: 'Follow the silhouette. Discover the details that give the SL its character.', word: 'SCULPTED', detail: 'A STUDY IN PROPORTION' },
+  { number: '04', label: 'The perspective', title: 'Leave an impression.', copy: 'One last angle. The same unmistakable presence.', word: 'AMG', detail: 'THE FINAL PERSPECTIVE' },
+]
+
+class SceneBoundary extends Component<{ children: ReactNode; onFailure: () => void }, { failed: boolean }> {
+  state = { failed: false }
+  static getDerivedStateFromError() { return { failed: true } }
+  componentDidCatch(error: Error, info: ErrorInfo) { console.error('Unable to render the vehicle scene', error, info); this.props.onFailure() }
+  render() {
+    if (this.state.failed) return <div className="scene-fallback"><p>The studio could not load.</p><button onClick={() => window.location.reload()}>Try again ↗</button></div>
+    return this.props.children
+  }
+}
+
+function LoadingScreen() {
+  const { active, progress, errors } = useProgress()
+  const [finished, setFinished] = useState(false)
+  useEffect(() => {
+    if (!active && progress === 100) {
+      const timer = window.setTimeout(() => setFinished(true), 350)
+      return () => window.clearTimeout(timer)
+    }
+  }, [active, progress])
+  if (finished) return null
+  return <div className="loading-screen" role="status" aria-live="polite">
+    <span className="eyebrow">AMG / DIGITAL ATELIER</span>
+    <span className="loading-title">Setting the scene.</span>
+    <div className="loading-track"><span style={{ width: `${progress}%` }} /></div>
+    {errors.length ? <><p>The vehicle could not be loaded.</p><button onClick={() => window.location.reload()}>Try again ↗</button></> : <span className="loading-caption">PREPARING THE STUDIO — {Math.round(progress)}%</span>}
+  </div>
+}
+
 function App() {
-  const [count, setCount] = useState(0)
-
+  const root = useRef<HTMLElement>(null)
+  const scroll = useRef({ progress: 0 })
+  const [chapter, setChapter] = useState(0)
+  const [sceneFailed, setSceneFailed] = useState(false)
+  const handleSceneFailure = useCallback(() => setSceneFailed(true), [])
+  const [reducedMotion, setReducedMotion] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+  const chapterRef = useRef(0)
+  useEffect(() => {
+    const query = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const update = () => setReducedMotion(query.matches)
+    query.addEventListener('change', update)
+    return () => query.removeEventListener('change', update)
+  }, [])
+  useGSAP(() => {
+    gsap.to(scroll.current, {
+      progress: 1,
+      ease: 'none',
+      scrollTrigger: { trigger: root.current, start: 'top top', end: 'bottom bottom', scrub: reducedMotion ? true : 0.7, invalidateOnRefresh: true },
+      onUpdate: () => {
+        const progress = scroll.current.progress
+        root.current?.style.setProperty('--progress', String(progress))
+        const next = progress < 0.13 ? 0 : progress < 0.4 ? 1 : progress < 0.7 ? 2 : 3
+        if (next !== chapterRef.current) { chapterRef.current = next; setChapter(next) }
+      },
+    })
+  }, { scope: root, dependencies: [reducedMotion], revertOnUpdate: true })
+  const current = chapters[chapter]
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
+    <main ref={root} className={`experience chapter-${chapter}`}>
+      <div className="studio-stage">
+        <div className="studio-glow" />
+        <header className="header">
+          <a href="#introduction" className="brand" aria-label="AMG studio, back to introduction"><span className="brand-stripes" />AMG<span className="brand-sub">DIGITAL ATELIER</span></a>
+          <span className="header-model">MERCEDES-BENZ <span>SL 63</span></span>
+          <a className="header-link" href="#silhouette">EXPLORE THE FORM <span>↗</span></a>
+        </header>
+        <div className="backdrop-type" key={current.word} aria-hidden="true">{current.word}</div>
+        <div className="canvas-layer"><SceneBoundary onFailure={handleSceneFailure}><CarScene scroll={scroll} reducedMotion={reducedMotion} /></SceneBoundary></div>
+        <div className="model-label"><span className="status-dot" /> 2022 / MERCEDES-AMG SL 63</div>
+        <div className="chapter-caption" key={chapter}>
+          <div className="chapter-kicker"><span>{current.number}</span><span>{current.label}</span></div>
+          <h1>{current.title}</h1>
+          <p>{current.copy}</p>
         </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+        <aside className="chapter-rail" aria-label="Current chapter">
+          {chapters.map((item, index) => <span key={item.number} className={index === chapter ? 'selected' : ''}>{item.number}<i /></span>)}
+        </aside>
+        <footer className="studio-footer">
+          <span className="footer-edition">THE SL COLLECTION <span> / </span> VOL. 01</span>
+          <div className="scroll-prompt"><span className="scroll-line" /><span>{chapter === 3 ? 'SCROLL BACK TO REVISIT' : current.detail}</span><span>↓</span></div>
+          <span className="chapter-counter">{current.number}<span> / 04</span></span>
+        </footer>
+        <div className="progress-track"><span /></div>
+        {!sceneFailed && <LoadingScreen />}
+      </div>
+      <div id="introduction" className="scroll-marker marker-intro" aria-hidden="true" />
+      <div id="reveal" className="scroll-marker marker-reveal" aria-hidden="true" />
+      <div id="silhouette" className="scroll-marker marker-side" aria-hidden="true" />
+      <div id="perspective" className="scroll-marker marker-rear" aria-hidden="true" />
+    </main>
   )
 }
 
