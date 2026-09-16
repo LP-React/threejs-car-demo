@@ -21,7 +21,7 @@ Build a visual, interactive Three.js application showcasing high-end cars. The 3
 - Evaluate models before implementing the scene. Prefer GLB/glTF with PBR textures and separately addressable materials for paint, glass, headlights, and taillights. Separate meshes are needed for independent part movement; a static model is sufficient for camera shots and whole-car transforms.
 - Build and animate the lighting in our scene. Do not assume a marketplace preview's lighting, environment, or postprocessing is included in the downloaded model. Avoid baked highlights or unlit body materials that prevent a convincing lighting reveal.
 - Inspect model hierarchy, material assignments, texture completeness, geometry, download size, and license before selecting an asset. Test the imported model under dark and studio lighting before finalizing it.
-- Asset sources to evaluate: [Sketchfab downloadable models](https://sketchfab.com/features/gltf) and [Fab](https://www.fab.com/). No specific vehicle asset has been selected yet.
+- Asset sources to evaluate: [Sketchfab downloadable models](https://sketchfab.com/features/gltf) and [Fab](https://www.fab.com/). The user supplied a 2022 Mercedes-AMG SL63 candidate; visual validation is pending.
 
 ## Scope
 
@@ -38,7 +38,7 @@ The user will provide vehicle models and specifications. Specific vehicles, scen
 - Animation: `gsap` with its included ScrollTrigger plugin and `@gsap/react` for React integration and cleanup. Use a scroll-linked sequence to control the camera and model.
 - Three.js types: `@types/three`. React stays on the 19.2 release line compatible with Fiber 9.
 - The 3D scene and scroll animations are not implemented yet.
-- No vehicle models have been added yet.
+- A user-provided archive exists at `src/2022-mercedes-benz-amg-sl63.zip` (not yet extracted or integrated). See `docs/model-audit.md` for its structural inspection.
 
 ## Version control
 
