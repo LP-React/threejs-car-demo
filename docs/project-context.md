@@ -32,14 +32,16 @@ The user will provide vehicle models and specifications. Specific vehicles, scen
 ## Current state
 
 - Base: Vite, React, and TypeScript; package manager: pnpm.
-- The first Mercedes-AMG SL63 experience replaces the Vite starter screen: a sticky studio viewport and four scroll-driven chapters with a dark opening, lighting reveal, side view, and rear perspective.
+- The first Mercedes-AMG SL63 experience uses a sticky studio viewport and four scroll-driven chapters: dark opening, lighting reveal, side silhouette, and a rear perspective that returns to a front three-quarter shot for the closing pose.
+- The entrance starts completely black, including loading. Once the scene is ready, it holds for one second, fades the headlights on, reveals the existing background, and then fades in the interface. Early scrolling completes the entrance; restored scroll positions and reduced-motion preferences skip it. Loading or rendering failures still show recovery messages.
+- Background typography sits higher (12% from the top on desktop, 22% on mobile) while the model's presentation scale remains unchanged. The final camera pose is held over the last 3% of scroll progress.
 - Installed 3D dependencies: `three`, `@react-three/fiber`, and `@react-three/drei` for React integration, model loading, and environments.
 - Visual effects: `postprocessing` and `@react-three/postprocessing`.
 - Antialiasing is applied in the postprocessing composer: 4-sample MSAA plus SMAA for fine edges. Native canvas antialiasing is disabled to avoid duplicating work; device pixel ratio is capped at 2 for sharper high-density displays. These settings add GPU cost and should be reviewed during hardware performance profiling.
 - Animation: `gsap` with its included ScrollTrigger plugin and `@gsap/react` for React integration and cleanup. Use a scroll-linked sequence to control the camera and model.
 - Three.js types: `@types/three`. React stays on the 19.2 release line compatible with Fiber 9.
 - `src/components/CarScene.tsx` loads the model, normalizes its bounds, adjusts materials, generates a local studio environment, and interpolates camera shots and environment intensity from scroll progress.
-- `src/App.tsx` manages the GSAP ScrollTrigger sequence, chapter text, loading progress, and rendering failure recovery. `src/App.css` styles the layered typography and responsive interface.
+- `src/App.tsx` manages the timed entrance, GSAP ScrollTrigger sequence, chapter text, scene readiness, and rendering failure recovery. `src/App.css` styles the layered typography and responsive interface.
 - Runtime model: `public/models/mercedes-amg-sl63.glb`, extracted from the original user-provided ZIP. The ZIP stays locally at `src/2022-mercedes-benz-amg-sl63.zip` and is ignored to avoid storing the model twice.
 - Desktop and 390 × 844 mobile layouts were visually checked, including dark headlights, the reveal, side/rear shots, and returning to the opening. No browser console errors were observed. Hardware performance profiling is still pending.
 - Reduced-motion preferences remove CSS transitions and replace camera interpolation with discrete shots. The scene provides WebGL and loading error fallbacks.
