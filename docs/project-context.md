@@ -32,13 +32,17 @@ The user will provide vehicle models and specifications. Specific vehicles, scen
 ## Current state
 
 - Base: Vite, React, and TypeScript; package manager: pnpm.
-- The application still displays the Vite starter screen.
+- The first Mercedes-AMG SL63 experience replaces the Vite starter screen: a sticky studio viewport and four scroll-driven chapters with a dark opening, lighting reveal, side view, and rear perspective.
 - Installed 3D dependencies: `three`, `@react-three/fiber`, and `@react-three/drei` for React integration, model loading, and environments.
 - Visual effects: `postprocessing` and `@react-three/postprocessing`.
 - Animation: `gsap` with its included ScrollTrigger plugin and `@gsap/react` for React integration and cleanup. Use a scroll-linked sequence to control the camera and model.
 - Three.js types: `@types/three`. React stays on the 19.2 release line compatible with Fiber 9.
-- The 3D scene and scroll animations are not implemented yet.
-- A user-provided archive exists at `src/2022-mercedes-benz-amg-sl63.zip` (not yet extracted or integrated). See `docs/model-audit.md` for its structural inspection.
+- `src/components/CarScene.tsx` loads the model, normalizes its bounds, adjusts materials, generates a local studio environment, and interpolates camera shots and environment intensity from scroll progress.
+- `src/App.tsx` manages the GSAP ScrollTrigger sequence, chapter text, loading progress, and rendering failure recovery. `src/App.css` styles the layered typography and responsive interface.
+- Runtime model: `public/models/mercedes-amg-sl63.glb`, extracted from the original user-provided ZIP. The ZIP stays locally at `src/2022-mercedes-benz-amg-sl63.zip` and is ignored to avoid storing the model twice.
+- Desktop and 390 × 844 mobile layouts were visually checked, including dark headlights, the reveal, side/rear shots, and returning to the opening. No browser console errors were observed. Hardware performance profiling is still pending.
+- Reduced-motion preferences remove CSS transitions and replace camera interpolation with discrete shots. The scene provides WebGL and loading error fallbacks.
+- Visible copy is editorial; vehicle specifications await user-provided information. The source URL, author, and asset license are still pending. See `docs/model-audit.md`.
 
 ## Version control
 

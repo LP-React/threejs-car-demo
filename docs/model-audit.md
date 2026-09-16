@@ -23,4 +23,12 @@ The structure is a useful starting point for scroll-driven camera shots and whol
 
 Headlight materials will need emissive settings for the dark opening. Paint and glass need review and likely adjustment under a studio environment; the source materials are not a finished automotive lighting setup.
 
-Load the model and visually inspect the front lights, paint, windows, normals, scale, and orientation in dark and studio-lit states. Measure performance before choosing optimization: the primitive count may increase draw calls, and triangle count alone does not determine rendering speed. Do not claim visual quality or final suitability until these checks are complete.
+## First implementation
+
+The GLB was extracted to `public/models/mercedes-amg-sl63.glb` and integrated into the first scroll presentation. Front-facing geometry points toward positive Z. The source bounds are normalized to a scene length of 4.8 units; this is a presentation scale, not a vehicle dimension claim.
+
+Visual checks confirmed that the daytime-running light geometry can glow independently. The outer headlight covers needed transparency adjustments to expose it. Paint uses a physical clearcoat material; window opacity and chrome properties were also adjusted. These runtime changes preserve the original GLB.
+
+The studio environment is generated locally from rectangular Lightformers. Scroll controls its intensity and camera shots. Bloom accents emissive lights; a generated gradient provides a soft grounding shadow, not physically calculated contact shadows.
+
+Desktop and mobile renders were inspected under dark and studio lighting. Mobile camera distance was adjusted to keep the entire side view visible. Performance profiling, deeper material refinement, and license/source recording remain pending.
