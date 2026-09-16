@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Keep the original download locally; version the extracted runtime model.
+/src/2022-mercedes-benz-amg-sl63.zip
