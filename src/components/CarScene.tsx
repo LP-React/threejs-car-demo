@@ -4,6 +4,7 @@ import { Environment, Lightformer, useGLTF } from '@react-three/drei'
 import { Bloom, EffectComposer, SMAA } from '@react-three/postprocessing'
 import { ACESFilmicToneMapping, Box3, Color, DataTexture, MathUtils, Mesh, MeshPhysicalMaterial, MeshStandardMaterial, Vector3 } from 'three'
 import type { MutableRefObject } from 'react'
+import { shots } from '../experience/sequence'
 
 export type ScrollState = { progress: number }
 type IntroState = { lights: number }
@@ -82,15 +83,6 @@ function Vehicle({ intro }: Pick<SceneProps, 'intro'>) {
   return <primitive object={vehicle.model} dispose={null} />
 }
 
-const shots = [
-  { at: 0, position: [0, 1.25, 6.2], target: [0, 0.7, 0], light: 0.002 },
-  { at: 0.25, position: [0.7, 1.65, 6.5], target: [0, 0.65, 0], light: 0.85 },
-  { at: 0.56, position: [7.5, 1.65, 0.5], target: [0, 0.7, 0], light: 1 },
-  { at: 0.83, position: [5.6, 2.15, -6.5], target: [0, 0.65, 0], light: 0.9 },
-  { at: 0.97, position: [3.7, 1.7, 6.6], target: [0, 0.7, 0], light: 0.85 },
-  { at: 1, position: [3.7, 1.7, 6.6], target: [0, 0.7, 0], light: 0.85 },
-]
-
 function CameraDirector({ scroll, intro, reducedMotion }: SceneProps) {
   const { camera, size } = useThree()
   const position = useMemo(() => new Vector3(), [])
@@ -103,12 +95,15 @@ function CameraDirector({ scroll, intro, reducedMotion }: SceneProps) {
     const to = shots[index]
     const raw = MathUtils.clamp((progress - from.at) / (to.at - from.at), 0, 1)
     const blend = reducedMotion ? (raw < 0.5 ? 0 : 1) : MathUtils.smoothstep(raw, 0, 1)
-    position.set(MathUtils.lerp(from.position[0], to.position[0], blend), MathUtils.lerp(from.position[1], to.position[1], blend), MathUtils.lerp(from.position[2], to.position[2], blend))
+    const angle = MathUtils.lerp(from.angle, to.angle, blend)
+    const radius = MathUtils.lerp(from.radius, to.radius, blend)
+    position.set(Math.sin(angle) * radius, MathUtils.lerp(from.y, to.y, blend), Math.cos(angle) * radius)
     target.set(MathUtils.lerp(from.target[0], to.target[0], blend), MathUtils.lerp(from.target[1], to.target[1], blend), MathUtils.lerp(from.target[2], to.target[2], blend))
     // Back the camera away on portrait screens to keep the full car in frame.
     const aspect = size.width / size.height
     const lateral = Math.abs(position.x - target.x) / position.distanceTo(target)
-    const fit = aspect < 1 ? Math.max(1.3, 0.8 / aspect) + lateral * 0.65 : 1
+    const wide = MathUtils.lerp(from.wide, to.wide, blend)
+    const fit = aspect < 1 ? MathUtils.lerp(1.12, Math.max(1.3, 0.8 / aspect) + lateral * 0.65, wide) : 1
     position.sub(target).multiplyScalar(fit).add(target)
     camera.position.copy(position)
     camera.lookAt(target)
