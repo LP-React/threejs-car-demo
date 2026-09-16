@@ -6,10 +6,11 @@ import { ACESFilmicToneMapping, Box3, Color, DataTexture, MathUtils, Mesh, MeshP
 import type { MutableRefObject } from 'react'
 
 export type ScrollState = { progress: number }
-type SceneProps = { scroll: MutableRefObject<ScrollState>; reducedMotion: boolean }
+type IntroState = { lights: number }
+type SceneProps = { scroll: MutableRefObject<ScrollState>; intro: MutableRefObject<IntroState>; reducedMotion: boolean; onReady: () => void }
 const modelUrl = `${import.meta.env.BASE_URL}models/mercedes-amg-sl63.glb`
 
-function Vehicle() {
+function Vehicle({ intro }: Pick<SceneProps, 'intro'>) {
   const { scene } = useGLTF(modelUrl)
   const vehicle = useMemo(() => {
     const clone = scene.clone(true)
@@ -68,10 +69,17 @@ function Vehicle() {
     const scale = 4.8 / box.getSize(new Vector3()).z
     clone.position.set(-center.x * scale, -box.min.y * scale + 0.035, -center.z * scale)
     clone.scale.setScalar(scale)
-    return clone
+    return { model: clone, lamps: [...materials.values()].filter((material) => /DRLs|shader_brake|vehiclelights128__RR/.test(material.name)) }
   }, [scene])
+  useFrame(() => {
+    for (const lamp of vehicle.lamps) {
+      // These are owned Three.js materials, animated imperatively outside React's render.
+      // eslint-disable-next-line react-hooks/immutability
+      lamp.emissiveIntensity = (/DRLs/.test(lamp.name) ? 4 : 2.5) * intro.current.lights
+    }
+  })
   // GLTF cache owns the shared geometry and textures; keep them for remounts.
-  return <primitive object={vehicle} dispose={null} />
+  return <primitive object={vehicle.model} dispose={null} />
 }
 
 const shots = [
@@ -79,10 +87,11 @@ const shots = [
   { at: 0.25, position: [0.7, 1.65, 6.5], target: [0, 0.65, 0], light: 0.85 },
   { at: 0.56, position: [7.5, 1.65, 0.5], target: [0, 0.7, 0], light: 1 },
   { at: 0.83, position: [5.6, 2.15, -6.5], target: [0, 0.65, 0], light: 0.9 },
-  { at: 1, position: [3.6, 1.7, -7.4], target: [0, 0.7, 0], light: 0.75 },
+  { at: 0.97, position: [3.7, 1.7, 6.6], target: [0, 0.7, 0], light: 0.85 },
+  { at: 1, position: [3.7, 1.7, 6.6], target: [0, 0.7, 0], light: 0.85 },
 ]
 
-function CameraDirector({ scroll, reducedMotion }: SceneProps) {
+function CameraDirector({ scroll, intro, reducedMotion }: SceneProps) {
   const { camera, size } = useThree()
   const position = useMemo(() => new Vector3(), [])
   const target = useMemo(() => new Vector3(), [])
@@ -103,8 +112,18 @@ function CameraDirector({ scroll, reducedMotion }: SceneProps) {
     position.sub(target).multiplyScalar(fit).add(target)
     camera.position.copy(position)
     camera.lookAt(target)
-    state.scene.environmentIntensity = MathUtils.lerp(from.light, to.light, blend)
+    state.scene.environmentIntensity = MathUtils.lerp(from.light, to.light, blend) * intro.current.lights
   })
+  return null
+}
+
+function SceneReady({ onReady }: Pick<SceneProps, 'onReady'>) {
+  useEffect(() => {
+    // Allow the first committed scene to render before starting the black hold.
+    let secondFrame = 0
+    const firstFrame = requestAnimationFrame(() => { secondFrame = requestAnimationFrame(onReady) })
+    return () => { cancelAnimationFrame(firstFrame); cancelAnimationFrame(secondFrame) }
+  }, [onReady])
   return null
 }
 
@@ -148,10 +167,11 @@ export function CarScene(props: SceneProps) {
       aria-label="Mercedes-AMG SL 63, a 3D studio presentation controlled by scrolling"
     >
       <Suspense fallback={null}>
-        <Vehicle />
+        <Vehicle intro={props.intro} />
         <Studio />
         <CameraDirector {...props} />
         <GroundShadow />
+        <SceneReady onReady={props.onReady} />
         {/* Apply antialiasing to the composer's render targets, which feed the final image. */}
         <EffectComposer multisampling={4}>
           <Bloom luminanceThreshold={1.1} intensity={0.35} mipmapBlur />

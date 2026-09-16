@@ -27,26 +27,19 @@ class SceneBoundary extends Component<{ children: ReactNode; onFailure: () => vo
 }
 
 function LoadingScreen() {
-  const { active, progress, errors } = useProgress()
-  const [finished, setFinished] = useState(false)
-  useEffect(() => {
-    if (!active && progress === 100) {
-      const timer = window.setTimeout(() => setFinished(true), 350)
-      return () => window.clearTimeout(timer)
-    }
-  }, [active, progress])
-  if (finished) return null
+  const { errors } = useProgress()
   return <div className="loading-screen" role="status" aria-live="polite">
-    <span className="eyebrow">AMG / DIGITAL ATELIER</span>
-    <span className="loading-title">Setting the scene.</span>
-    <div className="loading-track"><span style={{ width: `${progress}%` }} /></div>
-    {errors.length ? <><p>The vehicle could not be loaded.</p><button onClick={() => window.location.reload()}>Try again ↗</button></> : <span className="loading-caption">PREPARING THE STUDIO — {Math.round(progress)}%</span>}
+    {errors.length ? <><p>The vehicle could not be loaded.</p><button onClick={() => window.location.reload()}>Try again ↗</button></> : <span className="sr-only">Preparing the studio.</span>}
   </div>
 }
 
 function App() {
   const root = useRef<HTMLElement>(null)
   const scroll = useRef({ progress: 0 })
+  const intro = useRef({ lights: 0 })
+  const entrance = useRef<gsap.core.Timeline | null>(null)
+  const [sceneReady, setSceneReady] = useState(false)
+  const handleSceneReady = useCallback(() => setSceneReady(true), [])
   const [chapter, setChapter] = useState(0)
   const [sceneFailed, setSceneFailed] = useState(false)
   const handleSceneFailure = useCallback(() => setSceneFailed(true), [])
@@ -59,12 +52,28 @@ function App() {
     return () => query.removeEventListener('change', update)
   }, [])
   useGSAP(() => {
+    if (!sceneReady && !sceneFailed) return
+    if (reducedMotion || sceneFailed || window.scrollY > 30) {
+      gsap.set(intro.current, { lights: 1 })
+      gsap.set(root.current, { '--intro-scene': 1, '--intro-background': 1, '--intro-ui': 1 })
+      return
+    }
+    entrance.current = gsap.timeline({ delay: 1 })
+      .to(intro.current, { lights: 1, duration: 0.7, ease: 'power2.out' }, 0)
+      .to(root.current, { '--intro-scene': 1, duration: 0.25 }, 0)
+      .to(root.current, { '--intro-background': 1, duration: 1, ease: 'power2.out' }, 0.35)
+      .to(root.current, { '--intro-ui': 1, duration: 0.85, ease: 'power2.out' }, 0.65)
+    return () => { entrance.current = null }
+  }, { scope: root, dependencies: [sceneReady, sceneFailed, reducedMotion], revertOnUpdate: true })
+  useGSAP(() => {
     gsap.to(scroll.current, {
       progress: 1,
       ease: 'none',
       scrollTrigger: { trigger: root.current, start: 'top top', end: 'bottom bottom', scrub: reducedMotion ? true : 0.7, invalidateOnRefresh: true },
       onUpdate: () => {
         const progress = scroll.current.progress
+        // Early scrolling finishes the entrance instead of hiding the ongoing tour.
+        if (progress > 0.01) entrance.current?.progress(1)
         root.current?.style.setProperty('--progress', String(progress))
         const next = progress < 0.13 ? 0 : progress < 0.4 ? 1 : progress < 0.7 ? 2 : 3
         if (next !== chapterRef.current) { chapterRef.current = next; setChapter(next) }
@@ -75,6 +84,7 @@ function App() {
   return (
     <main ref={root} className={`experience chapter-${chapter}`}>
       <div className="studio-stage">
+        <div className="studio-base" />
         <div className="studio-glow" />
         <header className="header">
           <a href="#introduction" className="brand" aria-label="AMG studio, back to introduction"><span className="brand-stripes" />AMG<span className="brand-sub">DIGITAL ATELIER</span></a>
@@ -82,7 +92,7 @@ function App() {
           <a className="header-link" href="#silhouette">EXPLORE THE FORM <span>↗</span></a>
         </header>
         <div className="backdrop-type" key={current.word} aria-hidden="true">{current.word}</div>
-        <div className="canvas-layer"><SceneBoundary onFailure={handleSceneFailure}><CarScene scroll={scroll} reducedMotion={reducedMotion} /></SceneBoundary></div>
+        <div className="canvas-layer"><SceneBoundary onFailure={handleSceneFailure}><CarScene scroll={scroll} intro={intro} reducedMotion={reducedMotion} onReady={handleSceneReady} /></SceneBoundary></div>
         <div className="model-label"><span className="status-dot" /> 2022 / MERCEDES-AMG SL 63</div>
         <div className="chapter-caption" key={chapter}>
           <div className="chapter-kicker"><span>{current.number}</span><span>{current.label}</span></div>
@@ -98,7 +108,7 @@ function App() {
           <span className="chapter-counter">{current.number}<span> / 04</span></span>
         </footer>
         <div className="progress-track"><span /></div>
-        {!sceneFailed && <LoadingScreen />}
+        {!sceneFailed && !sceneReady && <LoadingScreen />}
       </div>
       <div id="introduction" className="scroll-marker marker-intro" aria-hidden="true" />
       <div id="reveal" className="scroll-marker marker-reveal" aria-hidden="true" />
