@@ -14,3 +14,4 @@ a { color: inherit; text-decoration: none; }
 button { font: inherit; cursor: pointer; color: inherit; }
 a:focus-visible, button:focus-visible { outline: 1px solid #b7dbc9; outline-offset: 8px; }
 ::selection { background: #b7dbc9; color: #080b0b; }
+html { scrollbar-width: none; } html::-webkit-scrollbar { display: none; }

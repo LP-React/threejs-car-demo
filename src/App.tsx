@@ -4,17 +4,12 @@ import { useProgress } from '@react-three/drei'
 import { useGSAP } from '@gsap/react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { ScrollToPlugin } from 'gsap/ScrollToPlugin'
+import { chapterAt, chapters, tourHeight } from './experience/sequence'
 import { CarScene } from './components/CarScene'
 import './App.css'
 
-gsap.registerPlugin(ScrollTrigger, useGSAP)
-
-const chapters = [
-  { number: '01', label: 'The introduction', title: 'Before the light.', copy: 'A presence you feel. Before you see it.', word: '', detail: 'SCROLL TO REVEAL' },
-  { number: '02', label: 'The reveal', title: 'Made to be seen.', copy: 'Light traces every curve. A new perspective on the Mercedes-AMG SL 63.', word: 'SL 63', detail: 'LIGHT / FORM / PRESENCE' },
-  { number: '03', label: 'The silhouette', title: 'Every line. Intentional.', copy: 'Follow the silhouette. Discover the details that give the SL its character.', word: 'SCULPTED', detail: 'A STUDY IN PROPORTION' },
-  { number: '04', label: 'The perspective', title: 'Leave an impression.', copy: 'One last angle. The same unmistakable presence.', word: 'AMG', detail: 'THE FINAL PERSPECTIVE' },
-]
+gsap.registerPlugin(ScrollTrigger, ScrollToPlugin, useGSAP)
 
 class SceneBoundary extends Component<{ children: ReactNode; onFailure: () => void }, { failed: boolean }> {
   state = { failed: false }
@@ -38,6 +33,7 @@ function App() {
   const scroll = useRef({ progress: 0 })
   const intro = useRef({ lights: 0 })
   const entrance = useRef<gsap.core.Timeline | null>(null)
+  const navigation = useRef<gsap.core.Tween | null>(null)
   const [sceneReady, setSceneReady] = useState(false)
   const handleSceneReady = useCallback(() => setSceneReady(true), [])
   const [chapter, setChapter] = useState(0)
@@ -65,7 +61,7 @@ function App() {
       .to(root.current, { '--intro-ui': 1, duration: 0.85, ease: 'power2.out' }, 0.65)
     return () => { entrance.current = null }
   }, { scope: root, dependencies: [sceneReady, sceneFailed, reducedMotion], revertOnUpdate: true })
-  useGSAP(() => {
+  const { contextSafe } = useGSAP(() => {
     gsap.to(scroll.current, {
       progress: 1,
       ease: 'none',
@@ -75,45 +71,57 @@ function App() {
         // Early scrolling finishes the entrance instead of hiding the ongoing tour.
         if (progress > 0.01) entrance.current?.progress(1)
         root.current?.style.setProperty('--progress', String(progress))
-        const next = progress < 0.13 ? 0 : progress < 0.4 ? 1 : progress < 0.7 ? 2 : 3
+        const next = chapterAt(progress)
         if (next !== chapterRef.current) { chapterRef.current = next; setChapter(next) }
       },
     })
   }, { scope: root, dependencies: [reducedMotion], revertOnUpdate: true })
+  const navigateTo = (index: number) => contextSafe(() => {
+    if (!root.current) return
+    entrance.current?.progress(1)
+    navigation.current?.kill()
+    const start = root.current.getBoundingClientRect().top + window.scrollY
+    const target = start + (root.current.offsetHeight - window.innerHeight) * chapters[index].at
+    const distance = Math.abs(target - window.scrollY) / window.innerHeight
+    navigation.current = gsap.to(window, {
+      scrollTo: { y: target, autoKill: true },
+      duration: reducedMotion ? 0 : Math.min(3.2, Math.max(0.8, distance * 0.6)),
+      ease: 'power2.inOut',
+    })
+  })()
   const current = chapters[chapter]
   return (
-    <main ref={root} className={`experience chapter-${chapter}`}>
+    <main ref={root} className={`experience chapter-${chapter}`} style={{ height: `${tourHeight}svh` }}>
       <div className="studio-stage">
         <div className="studio-base" />
         <div className="studio-glow" />
         <header className="header">
-          <a href="#introduction" className="brand" aria-label="AMG studio, back to introduction"><span className="brand-stripes" />AMG<span className="brand-sub">DIGITAL ATELIER</span></a>
+          <a href="#introduction" onClick={(event) => { event.preventDefault(); navigateTo(0) }} className="brand" aria-label="AMG studio, back to introduction"><span className="brand-stripes" />AMG<span className="brand-sub">DIGITAL ATELIER</span></a>
           <span className="header-model">MERCEDES-BENZ <span>SL 63</span></span>
-          <a className="header-link" href="#silhouette">EXPLORE THE FORM <span>↗</span></a>
         </header>
         <div className="backdrop-type" key={current.word} aria-hidden="true">{current.word}</div>
         <div className="canvas-layer"><SceneBoundary onFailure={handleSceneFailure}><CarScene scroll={scroll} intro={intro} reducedMotion={reducedMotion} onReady={handleSceneReady} /></SceneBoundary></div>
+        <div className="studio-shade" aria-hidden="true" />
         <div className="model-label"><span className="status-dot" /> 2022 / MERCEDES-AMG SL 63</div>
         <div className="chapter-caption" key={chapter}>
           <div className="chapter-kicker"><span>{current.number}</span><span>{current.label}</span></div>
           <h1>{current.title}</h1>
           <p>{current.copy}</p>
         </div>
-        <aside className="chapter-rail" aria-label="Current chapter">
-          {chapters.map((item, index) => <span key={item.number} className={index === chapter ? 'selected' : ''}>{item.number}<i /></span>)}
-        </aside>
+        <nav className="chapter-rail" aria-label="Experience chapters">
+          {chapters.map((item, index) => <a key={item.id} href={`#${item.id}`} onClick={(event) => { event.preventDefault(); navigateTo(index) }} className={index === chapter ? 'selected' : ''} aria-current={index === chapter ? 'step' : undefined} aria-label={`${item.number} ${item.label}`}>
+            <span className="rail-number">{item.number}</span><span className="rail-label">{item.label}</span><i />
+          </a>)}
+        </nav>
         <footer className="studio-footer">
           <span className="footer-edition">THE SL COLLECTION <span> / </span> VOL. 01</span>
-          <div className="scroll-prompt"><span className="scroll-line" /><span>{chapter === 3 ? 'SCROLL BACK TO REVISIT' : current.detail}</span><span>↓</span></div>
-          <span className="chapter-counter">{current.number}<span> / 04</span></span>
+          <div className="scroll-prompt"><span className="scroll-line" /><span>{chapter === chapters.length - 1 ? 'SCROLL BACK TO REVISIT' : current.detail}</span><span>↓</span></div>
+          <span className="chapter-counter">{current.number}<span> / {String(chapters.length).padStart(2, '0')}</span></span>
         </footer>
         <div className="progress-track"><span /></div>
         {!sceneFailed && !sceneReady && <LoadingScreen />}
       </div>
-      <div id="introduction" className="scroll-marker marker-intro" aria-hidden="true" />
-      <div id="reveal" className="scroll-marker marker-reveal" aria-hidden="true" />
-      <div id="silhouette" className="scroll-marker marker-side" aria-hidden="true" />
-      <div id="perspective" className="scroll-marker marker-rear" aria-hidden="true" />
+      {chapters.map((item) => <div key={item.id} id={item.id} className="scroll-marker" style={{ top: `${item.at * (tourHeight - 100)}svh` }} aria-hidden="true" />)}
     </main>
   )
 }
