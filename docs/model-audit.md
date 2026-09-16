@@ -32,3 +32,9 @@ Visual checks confirmed that the daytime-running light geometry can glow indepen
 The studio environment is generated locally from rectangular Lightformers. Scroll controls its intensity and camera shots. Bloom accents emissive lights; a generated gradient provides a soft grounding shadow, not physically calculated contact shadows.
 
 Desktop and mobile renders were inspected under dark and studio lighting. Mobile camera distance was adjusted to keep the entire side view visible. Performance profiling, deeper material refinement, and license/source recording remain pending.
+
+## Mobile variant
+
+`pnpm optimize:mobile` generates `public/models/mercedes-amg-sl63-mobile.glb` with glTF Transform 4.5.0 and Sharp. It joins compatible meshes, welds vertices, quantizes attributes, and converts textures to WebP (maximum 1024px, quality 85). It retains all 350,581 triangles and all 29 named materials, including the independent headlamp covers. Material deduplication and geometry simplification are intentionally excluded.
+
+The variant contains 29 primitives and weighs 10,791,908 bytes: 33.6% smaller than the original, with 93.5% fewer primitives. WebP reduces transfer size; it is not GPU-native texture compression. The original desktop asset remains unchanged. Quantization and smaller textures trade some fine detail for lower memory/transfer cost. Physical-phone FPS and loading times still need measurement after deployment.
